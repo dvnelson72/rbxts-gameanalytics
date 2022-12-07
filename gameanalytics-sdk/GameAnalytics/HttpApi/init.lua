@@ -28,8 +28,30 @@ local http_api = {
 
 local HTTP = game:GetService("HttpService")
 local logger = require(script.Parent.Logger)
-local baseUrl = (RunService:IsStudio() and "http" or http_api.protocol) .. "://" .. (RunService:IsStudio() and "sandbox-" or "") .. http_api.hostName .. "/" .. http_api.version
-local remoteConfigsBaseUrl = (RunService:IsStudio() and "http" or http_api.protocol) .. "://" .. (RunService:IsStudio() and "sandbox-" or "") .. http_api.hostName .. "/remote_configs/" .. http_api.remoteConfigsVersion
+
+local function isUsingSandbox() 
+	local _useSandbox = RunService:IsStudio()
+	local env = getfenv(0)
+	if (env["GameAnalyticsUseSandbox"]~=nil) then
+		_useSandbox = env["GameAnalyticsUseSandbox"]
+	end
+
+	--print("USE SANDBOX ")
+	--print(_useSandbox)
+	return _useSandbox
+end
+
+local function getBaseUrl() 
+	local _useSandbox = isUsingSandbox()
+
+	return (_useSandbox and "https" or http_api.protocol) .. "://" .. (_useSandbox and "sandbox-" or "") .. http_api.hostName .. "/" .. http_api.version
+end
+
+local function getRemoteConfigsBaseUrl() 
+	local _useSandbox = isUsingSandbox()
+
+	return (_useSandbox and "https" or http_api.protocol) .. "://" .. (_useSandbox and "sandbox-" or "") .. http_api.hostName .. "/remote_configs/" .. http_api.remoteConfigsVersion
+end
 
 local function getInitAnnotations(build, playerData, playerId)
 	local initAnnotations = {
@@ -55,7 +77,7 @@ local function encode(payload, secretKey)
 	--Encode
 	local payloadHmac = HashLib.hmac(
 		HashLib.sha256,
-		RunService:IsStudio() and "16813a12f718bc5c620f56944e1abc3ea13ccbac" or secretKey,
+		isUsingSandbox() and "16813a12f718bc5c620f56944e1abc3ea13ccbac" or secretKey,
 		payload,
 		true
 	)
@@ -91,9 +113,9 @@ local function processRequestResponse(response, requestId)
 end
 
 function http_api:initRequest(gameKey, secretKey, build, playerData, playerId)
-	local url = remoteConfigsBaseUrl .. "/" .. http_api.initializeUrlPath .. "?game_key=" .. gameKey .. "&interval_seconds=0&configs_hash=" .. (playerData.ConfigsHash or "")
-	if RunService:IsStudio() then
-		url = baseUrl .. "/5c6bcb5402204249437fb5a7a80a4959/" .. self.initializeUrlPath
+	local url = getRemoteConfigsBaseUrl() .. "/" .. http_api.initializeUrlPath .. "?game_key=" .. gameKey .. "&interval_seconds=0&configs_hash=" .. (playerData.ConfigsHash or "")
+	if isUsingSandbox() then
+		url = getBaseUrl() .. "/5c6bcb5402204249437fb5a7a80a4959/" .. self.initializeUrlPath
 	end
 
 	logger:d("Sending 'init' URL: " .. url)
@@ -184,9 +206,9 @@ function http_api:sendEventsInArray(gameKey, secretKey, eventArray)
 	end
 
 	-- Generate URL
-	local url = baseUrl .. "/" .. gameKey .. "/" .. self.eventsUrlPath
-	if RunService:IsStudio() then
-		url = baseUrl .. "/5c6bcb5402204249437fb5a7a80a4959/" .. self.eventsUrlPath
+	local url = getBaseUrl() .. "/" .. gameKey .. "/" .. self.eventsUrlPath
+	if isUsingSandbox() then
+		url = getBaseUrl() .. "/5c6bcb5402204249437fb5a7a80a4959/" .. self.eventsUrlPath
 	end
 
 	logger:d("Sending 'events' URL: " .. url)
