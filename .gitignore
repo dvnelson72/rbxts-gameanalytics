@@ -3,6 +3,7 @@
 *.rbxm
 *.rbxl
 *.rbxlx
+*.tgz
 
 # Other
 roblox.toml
